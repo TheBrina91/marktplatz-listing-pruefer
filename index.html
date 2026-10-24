@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marktplatz-Listing-Prüfer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Basis-Reset (ersetzt Tailwind Preflight) */
+*,*::before,*::after{box-sizing:border-box}
+h1,h2,p,ul,pre{margin:0}
+ul{padding:0;list-style:none}
+button,input,textarea{font:inherit;color:inherit;margin:0}
+button{background:none}
+svg{display:block}
+/* Utility-Klassen im Tailwind-Stil (nur die genutzten, ohne CDN) */
+.flex{display:flex}.grid{display:grid}
+.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
+.items-start{align-items:flex-start}.items-center{align-items:center}.items-end{align-items:flex-end}.items-baseline{align-items:baseline}
+.justify-between{justify-content:space-between}
+.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.gap-6{gap:1.5rem}
+.mb-7{margin-bottom:1.75rem}
+.min-w-0{min-width:0}
+.text-xs{font-size:.75rem;line-height:1rem}.text-sm{font-size:.875rem;line-height:1.25rem}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
+@media (min-width:1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1280px){.xl\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Layout: Kopfzeile mit Schnelltests · darunter 2 Spalten — links Eingabe + Live-Scanner, rechts Health-Score, Handy-Vorschau, HTML-Export */
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --sunken:#E9ECE8; --ink:#17211D; --muted:#56625D; --line:#D4DAD5;
+  --accent:#0E5A61; --accent-ink:#FFFFFF; --accent-soft:#DCEDEE;
+  --ok:#1C7343; --ok-bg:#E1F2E8; --warn:#8F5D00; --warn-bg:#FBEFD6; --bad:#B0222B; --bad-bg:#FBE3E4;
+  --phone:#1B2320; --screen:#FFFFFF; --screen-ink:#17211D; --screen-muted:#5E6A65;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1412; --surface:#171E1B; --sunken:#121815; --ink:#E6ECE8; --muted:#9AA6A0; --line:#2A3430;
+    --accent:#5BB8BF; --accent-ink:#0B1513; --accent-soft:#16312F;
+    --ok:#5BCB8A; --ok-bg:#15301F; --warn:#F0B54A; --warn-bg:#33270F; --bad:#F2727A; --bad-bg:#3A1A1D;
+    --phone:#050807; --screen:#1B2321; --screen-ink:#E6ECE8; --screen-muted:#9AA6A0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1412; --surface:#171E1B; --sunken:#121815; --ink:#E6ECE8; --muted:#9AA6A0; --line:#2A3430;
+  --accent:#5BB8BF; --accent-ink:#0B1513; --accent-soft:#16312F;
+  --ok:#5BCB8A; --ok-bg:#15301F; --warn:#F0B54A; --warn-bg:#33270F; --bad:#F2727A; --bad-bg:#3A1A1D;
+  --phone:#050807; --screen:#1B2321; --screen-ink:#E6ECE8; --screen-muted:#9AA6A0;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+h1,h2{font-family:var(--f-display);text-wrap:balance}
+h1{font-weight:800;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.1;letter-spacing:-.01em}
+h2{font-weight:600;font-size:1.05rem;letter-spacing:.01em}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:11px 16px;font-weight:600;font-size:.95rem;border:1px solid transparent;cursor:pointer;transition:transform .12s ease,background .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn-good{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.btn-bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--line)}
+.btn-accent{background:var(--accent);color:var(--accent-ink)}
+label.f{display:block;font-weight:600;margin-bottom:6px}
+.inp{width:100%;background:var(--sunken);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:1rem}
+.inp.mono{font-size:1.05rem;letter-spacing:.04em}
+textarea.inp{resize:vertical;min-height:120px;line-height:1.55}
+.inp.is-ok{border-color:var(--ok)} .inp.is-warn{border-color:var(--warn)} .inp.is-bad{border-color:var(--bad)}
+.msg{font-size:.9rem;border-radius:7px;padding:8px 11px;border:1px solid}
+.msg.ok{color:var(--ok);background:var(--ok-bg);border-color:transparent}
+.msg.warn{color:var(--warn);background:var(--warn-bg);border-color:transparent}
+.msg.bad{color:var(--bad);background:var(--bad-bg);border-color:transparent}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.75rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{color:var(--ok);background:var(--ok-bg)} .pill.warn{color:var(--warn);background:var(--warn-bg)} .pill.bad{color:var(--bad);background:var(--bad-bg)}
+.badge{display:inline-flex;align-items:baseline;gap:6px;font-size:.82rem;padding:3px 9px;border-radius:6px;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.badge b{font-family:var(--f-mono)}
+.counter{font-family:var(--f-mono);font-size:.8rem;font-weight:600;padding:2px 8px;border-radius:6px}
+.counter.ok{color:var(--ok);background:var(--ok-bg)} .counter.warn{color:var(--warn);background:var(--warn-bg)} .counter.bad{color:var(--bad);background:var(--bad-bg)}
+.calc{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px;font-family:var(--f-mono);font-size:.75rem;text-align:center}
+.calc div{background:var(--sunken);border-radius:4px;padding:3px 0;line-height:1.3}
+.calc .d{font-weight:600;font-size:.9rem;color:var(--ink)}
+.calc .w{color:var(--muted)}
+.calc .chk{background:var(--accent-soft)}
+.calc .chk.bad{background:var(--bad-bg);color:var(--bad)}
+.calc .chk.ok{background:var(--ok-bg);color:var(--ok)}
+.bar{height:18px;border-radius:999px;background:var(--sunken);overflow:hidden;border:1px solid var(--line)}
+.bar>span{display:block;height:100%;border-radius:999px;transition:width .4s ease,background .3s ease}
+.score-num{font-family:var(--f-display);font-weight:800;font-size:3.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.checkrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.checkrow:first-child{border-top:0}
+/* Handy-Vorschau */
+.phone{width:100%;max-width:320px;margin:0 auto;background:var(--phone);border-radius:38px;padding:12px;box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+.screen{background:var(--screen);color:var(--screen-ink);border-radius:28px;overflow:hidden;min-height:520px}
+.notch{width:92px;height:22px;background:var(--phone);border-radius:0 0 14px 14px;margin:0 auto}
+.shop-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:.75rem;color:var(--screen-muted);border-bottom:1px solid var(--line)}
+.shop-img{aspect-ratio:4/3;max-width:100%;background:var(--sunken);display:grid;place-items:center;color:var(--screen-muted)}
+.shop-title{font-weight:600;font-size:.98rem;line-height:1.35;overflow-wrap:anywhere}
+.shop-price{font-family:var(--f-display);font-weight:800;font-size:1.6rem}
+.shop-list{list-style:disc;padding-left:18px;font-size:.84rem;display:grid;gap:5px;color:var(--screen-ink)}
+.cart{width:100%;border-radius:999px;padding:10px;font-weight:600;background:var(--accent);color:var(--accent-ink);text-align:center}
+.cart.off{background:var(--sunken);color:var(--screen-muted)}
+pre.code{background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:14px;font-family:var(--f-mono);font-size:.82rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;margin:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="flex flex-col gap-5 mb-7">
+    <div class="flex flex-col gap-2">
+      <span class="eyebrow">Produktdaten-Check · Amazon · Kaufland · eBay · WooCommerce</span>
+      <h1>Marktplatz-Listing-Prüfer</h1>
+      <p class="muted" style="max-width:62ch">Prüft Titel, GTIN/EAN, Bulletpoints und Preis live gegen typische Marktplatz-Regeln, bevor ein Listing beim Upload abgelehnt wird.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <button id="btnGood" class="btn btn-good" type="button">✅ Perfektes Beispiel laden</button>
+      <button id="btnBad" class="btn btn-bad" type="button">❌ Fehler-Beispiel laden (Stress-Test)</button>
+      <button id="btnClear" class="btn btn-ghost" type="button">Felder leeren</button>
+    </div>
+  </header>
+
+  <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <!-- LINKS: Eingabe & Scanner -->
+    <section class="flex flex-col gap-5 min-w-0" aria-label="Eingabe und Fehler-Scanner">
+
+      <div class="panel flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-3">
+          <label class="f" for="title" style="margin:0">Produkttitel</label>
+          <span id="titleCount" class="counter ok">0 / 80</span>
+        </div>
+        <input id="title" class="inp" type="text" autocomplete="off" placeholder="Marke Modell Kernmerkmal Größe Farbe">
+        <p class="text-xs muted">Ziel: 40–80 Zeichen · ab 121 Zeichen kürzen die meisten Marktplätze oder lehnen ab.</p>
+        <div id="titleMsg" class="msg ok"></div>
+        <div id="titleBadges" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <div class="panel flex flex-col gap-3">
+        <label class="f" for="ean" style="margin:0">EAN / GTIN-13</label>
+        <input id="ean" class="inp mono" type="text" inputmode="numeric" autocomplete="off" placeholder="13 Ziffern, z. B. 4012345678901">
+        <div id="eanMsg" class="msg ok"></div>
+        <div id="eanCalcWrap" class="flex flex-col gap-2">
+          <span class="eyebrow">GS1 Modulo 10 · Gewichtung 1 und 3</span>
+          <div id="eanCalc" class="calc" aria-label="Rechenweg der Prüfziffer"></div>
+          <p id="eanSum" class="mono text-xs muted"></p>
+        </div>
+      </div>
+
+      <div class="panel flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-3">
+          <label class="f" for="bullets" style="margin:0">Bulletpoints <span class="muted" style="font-weight:400">(1 Punkt pro Zeile)</span></label>
+          <span id="bulletCount" class="counter ok">0 / 3</span>
+        </div>
+        <textarea id="bullets" class="inp" rows="5" placeholder="Vorteil 1&#10;Vorteil 2&#10;Vorteil 3"></textarea>
+        <div id="bulletMsg" class="msg ok"></div>
+        <ul id="bulletLens" class="flex flex-col gap-1 text-sm"></ul>
+      </div>
+
+      <div class="panel flex flex-col gap-3">
+        <label class="f" for="price" style="margin:0">Preis (EUR, brutto)</label>
+        <input id="price" class="inp mono" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 299.00">
+        <div id="priceMsg" class="msg ok"></div>
+      </div>
+    </section>
+
+    <!-- RECHTS: Score, Vorschau, Export -->
+    <section class="flex flex-col gap-5 min-w-0" aria-label="Ergebnis und Vorschau">
+
+      <div class="panel flex flex-col gap-4">
+        <div class="flex items-end justify-between gap-4 flex-wrap">
+          <div class="flex flex-col gap-1">
+            <span class="eyebrow">Listing Health Score</span>
+            <span id="scoreNum" class="score-num">0%</span>
+          </div>
+          <span id="scorePill" class="pill bad">Upload wird abgelehnt</span>
+        </div>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="scoreBar"><span id="scoreFill" style="width:0%"></span></div>
+        <div id="checklist" class="flex flex-col"></div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <div class="flex flex-col gap-3 min-w-0">
+          <span class="eyebrow">Live-Vorschau · Marktplatz-App</span>
+          <div class="phone" aria-label="Smartphone-Vorschau">
+            <div class="screen">
+              <div class="notch"></div>
+              <div class="shop-bar"><span aria-hidden="true">‹</span><span>Elektro &amp; Haus</span></div>
+              <div class="shop-img" aria-hidden="true">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>
+              </div>
+              <div class="flex flex-col gap-3" style="padding:14px 16px 18px">
+                <p id="pvTitle" class="shop-title"></p>
+                <div class="flex items-baseline gap-2 flex-wrap">
+                  <span id="pvPrice" class="shop-price"></span>
+                  <span class="text-xs" style="color:var(--screen-muted)">inkl. MwSt.</span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap text-xs"><span style="color:var(--screen-muted)">GTIN</span><span id="pvEan" class="pill ok"></span></div>
+                <div id="pvBarcode" style="color:var(--screen-ink)"></div>
+                <ul id="pvBullets" class="shop-list"></ul>
+                <div id="pvCart" class="cart">In den Warenkorb</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel flex flex-col gap-3 min-w-0">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2>HTML-Export Bulletpoints</h2>
+            <button id="btnCopy" class="btn btn-accent" type="button" style="padding:8px 13px;font-size:.88rem">HTML kopieren</button>
+          </div>
+          <p class="text-xs muted">Fertig zum Einfügen ins Beschreibungsfeld (Kaufland, eBay, WooCommerce). Sonderzeichen wie &lt; &amp; werden sicher maskiert.</p>
+          <pre id="htmlOut" class="code" tabindex="0"></pre>
+          <p id="copyMsg" class="text-sm" role="status" style="min-height:1.4em"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  /* ---------- Beispieldaten ---------- */
+  const EXAMPLES = {
+    good: {
+      title: "Wallbox Basic 11kW IP54 5m Ladekabel Weiß",
+      ean: "4012345678901",
+      price: "299.00",
+      bullets: [
+        "11 kW Ladeleistung: lädt E-Autos bis zu 5-mal schneller als an der Haushaltssteckdose",
+        "Schutzart IP54 für Montage innen und außen, geschützt gegen Staub und Spritzwasser",
+        "Fest angeschlagenes 5 m Ladekabel mit Typ-2-Stecker, passend für alle gängigen E-Autos"
+      ].join("\n")
+    },
+    bad: {
+      title: "TOP BESTSELLER!! wand-regal STAHL versandkostenfrei!",
+      ean: "ART-TS-099",
+      price: "",
+      bullets: "Super stabil"
+    }
+  };
+
+  /* ---------- Regeln ---------- */
+  const BUZZWORDS = ["versandkostenfrei","bestseller","top","rabatt","angebot","gratis","sale","aktion","billig","günstig","schnäppchen"];
+  const SPAM_CHARS = ["!","?","€"];
+  const CAPS_ALLOWED = new Set(["KW","LED","USB","EAN","GTIN","HDMI","LCD","OLED","RGB","DIN","VDE","TÜV","PVC","XXL","WLAN","LAN","SSD","HDD","CPU","GPU","AAA","DVD","SMD"]);
+
+  /* ---------- Titel ---------- */
+  function checkTitle(t){
+    const len = t.trim().length;
+    let lenState;
+    if (len === 0) lenState = "bad";
+    else if (len > 120) lenState = "bad";
+    else if (len >= 40 && len <= 80) lenState = "ok";
+    else lenState = "warn";
+
+    const hits = [];
+    const seen = new Set();
+    const add = (term, why) => { const k = term.toLowerCase()+"|"+why; if(!seen.has(k)){ seen.add(k); hits.push({term, why}); } };
+
+    t.split(/[\s\/\-–,;:()]+/).forEach(raw => {
+      const clean = raw.replace(/[^0-9A-Za-zÄÖÜäöüß]/g, "");
+      if (!clean) return;
+      const lower = clean.toLowerCase();
+      if (BUZZWORDS.includes(lower)) { add(clean, "Werbewort"); return; }
+      const letters = clean.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+      const hasDigit = /\d/.test(clean);
+      if (!hasDigit && letters.length >= 3 && letters === letters.toUpperCase() && letters !== letters.toLowerCase() && !CAPS_ALLOWED.has(letters)) {
+        add(clean, "GROSSSCHREIBUNG");
+      }
+    });
+    SPAM_CHARS.forEach(ch => {
+      const n = t.split(ch).length - 1;
+      if (n > 0) add(ch, "Sonderzeichen ×" + n);
+    });
+
+    let state = lenState;
+    if (hits.length) state = "bad";
+    let msg;
+    if (len === 0) msg = "Kein Titel eingetragen.";
+    else if (hits.length) msg = "Spam-Filter schlägt an: " + hits.length + " Auslöser. Marktplätze sperren Werbesprache im Titel.";
+    else if (len > 120) msg = "Zu lang (" + len + " Zeichen). Über 120 Zeichen wird gekürzt oder abgelehnt.";
+    else if (len < 40) msg = "Zu kurz (" + len + " Zeichen). Ergänze Kernmerkmale wie Leistung, Maße, Farbe.";
+    else if (len > 80) msg = "Länge okay, aber über 80 Zeichen: In der Handy-Ansicht wird der Titel abgeschnitten.";
+    else msg = "Sauberer Titel: optimale Länge, keine Werbewörter.";
+
+    const lenPts = lenState === "ok" ? 10 : lenState === "warn" ? 5 : 0;
+    const spamPts = (len > 0 && !hits.length) ? 25 : 0;
+    return { len, lenState, hits, state, msg, pts: lenPts + spamPts, critical: len === 0 || len > 120 || hits.length > 0 };
+  }
+
+  /* ---------- EAN / GTIN-13 ---------- */
+  function gs1Check(d12){
+    let sum = 0;
+    for (let i = 0; i < 12; i++) sum += Number(d12[i]) * (i % 2 === 0 ? 1 : 3);
+    return { sum, check: (10 - (sum % 10)) % 10 };
+  }
+
+  function checkEAN(raw){
+    const v = raw.replace(/\s+/g, "");
+    if (!v) return { state:"bad", pts:0, critical:true, msg:"Keine EAN eingetragen. Ohne GTIN legen Marktplätze kein Angebot an.", label:"fehlt" };
+    if (/[A-Za-zÄÖÜäöü]/.test(v)) return { state:"bad", pts:0, critical:true, msg:"Kritischer Fehler: Interne SKU erkannt! Marktplätze verlangen eine numerische 13-stellige GTIN/EAN.", label:"SKU statt EAN" };
+    if (/\D/.test(v)) return { state:"bad", pts:0, critical:true, msg:"Nur Ziffern erlaubt. Entferne Bindestriche, Punkte oder Schrägstriche.", label:"ungültig" };
+    if (v.length === 12) return { state:"bad", pts:0, critical:true, digits:v, msg:"Nur 12 Ziffern. Das sieht nach einer UPC-A aus: Mit führender 0 wird daraus die EAN-13 0" + v + ".", label:"12 statt 13" };
+    if (v.length !== 13) return { state:"bad", pts:0, critical:true, digits:v, msg: v.length + " Ziffern statt 13. Eine EAN-13 hat genau 13 Ziffern.", label: v.length + " Ziffern" };
+    const { sum, check } = gs1Check(v.slice(0,12));
+    const given = Number(v[12]);
+    if (given === check) {
+      return { state:"ok", pts:30, critical:false, digits:v, sum, check, valid:true,
+        msg:"Mathematisch valide (GS1 Modulo 10). Prüfziffer " + check + " stimmt. Hinweis: Ob die Nummer bei GS1 registriert ist, prüft erst der Marktplatz.", label:"valide" };
+    }
+    return { state:"bad", pts:10, critical:true, digits:v, sum, check, valid:false,
+      msg:"Tippfehler: Prüfziffer ist " + given + ", korrekt wäre " + check + ". Richtige EAN: " + v.slice(0,12) + check, label:"Prüfziffer falsch" };
+  }
+
+  /* ---------- Bulletpoints ---------- */
+  function parseBullets(text){
+    return text.split(/\r?\n/).map(l => l.replace(/^\s*([-•*–·]|\d+[.)])\s*/, "").trim()).filter(Boolean);
+  }
+  function checkBullets(text){
+    const list = parseBullets(text);
+    const tooLong = list.filter(b => b.length > 200).length;
+    let state, msg, pts;
+    if (list.length === 0) { state = "bad"; pts = 0; msg = "Keine Bulletpoints. Mindestens 3 Verkaufsvorteile sind Standard."; }
+    else if (list.length < 3) { state = "warn"; pts = 5; msg = "Nur " + list.length + " Bulletpoint" + (list.length === 1 ? "" : "s") + ". Mindestens 3 sind nötig."; }
+    else if (tooLong) { state = "warn"; pts = 10; msg = tooLong + " Punkt" + (tooLong === 1 ? " ist" : "e sind") + " länger als 200 Zeichen. Kürzen, sonst schneidet der Marktplatz ab."; }
+    else { state = "ok"; pts = 20; msg = list.length + " Bulletpoints, alle unter 200 Zeichen."; }
+    return { list, state, msg, pts, critical:false };
+  }
+
+  /* ---------- Preis ---------- */
+  function checkPrice(raw){
+    const v = raw.trim();
+    if (!v) return { state:"bad", pts:0, critical:true, msg:"Kein Preis eingetragen. Ohne Preis wird das Angebot nicht freigeschaltet.", value:null };
+    if (!/^\d+([.,]\d{1,2})?$/.test(v)) return { state:"bad", pts:0, critical:true, msg:"Ungültiges Format. Erlaubt: Zahl mit max. 2 Nachkommastellen, z. B. 299.00 oder 299,00.", value:null };
+    const n = parseFloat(v.replace(",", "."));
+    if (!(n > 0)) return { state:"bad", pts:0, critical:true, msg:"Preis muss größer als 0 sein.", value:null };
+    return { state:"ok", pts:15, critical:false, msg:"Gültiger Preis: " + fmtEUR(n), value:n };
+  }
+  function fmtEUR(n){ return new Intl.NumberFormat("de-DE", { style:"currency", currency:"EUR" }).format(n); }
+
+  /* ---------- Hilfen ---------- */
+  function escHTML(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  function setState(el, base, state){ el.className = base + " " + state; }
+  function setInput(el, state){ el.classList.remove("is-ok","is-warn","is-bad"); if (el.value.trim()) el.classList.add("is-" + state); }
+  function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  /* ---------- EAN-13 Strichcode (L/G/R-Codierung) ---------- */
+  const L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+  const G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+  const R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+  const PARITY = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+  function barcodeSVG(code){
+    const first = Number(code[0]);
+    let bits = "101";
+    for (let i = 1; i <= 6; i++) bits += (PARITY[first][i-1] === "L" ? L : G)[Number(code[i])];
+    bits += "01010";
+    for (let i = 7; i <= 12; i++) bits += R[Number(code[i])];
+    bits += "101";
+    const guard = new Set([0,1,2,45,46,47,48,49,92,93,94]);
+    const ox = 9;
+    let rects = "";
+    for (let i = 0; i < bits.length; i++) {
+      if (bits[i] === "1") rects += '<rect x="' + (ox + i) + '" y="2" width="1" height="' + (guard.has(i) ? 58 : 52) + '" fill="currentColor"/>';
+    }
+    let txt = '<text x="4" y="66" font-size="8">' + code[0] + '</text>';
+    for (let i = 0; i < 6; i++) txt += '<text x="' + (ox + 3 + i*7 + 3.5) + '" y="66" font-size="8" text-anchor="middle">' + code[i+1] + '</text>';
+    for (let i = 0; i < 6; i++) txt += '<text x="' + (ox + 50 + i*7 + 3.5) + '" y="66" font-size="8" text-anchor="middle">' + code[i+7] + '</text>';
+    return '<svg viewBox="0 0 113 69" width="170" role="img" aria-label="EAN-13 Strichcode ' + code + '" style="max-width:100%;display:block" font-family="IBM Plex Mono, monospace" fill="currentColor">' + rects + txt + '</svg>';
+  }
+
+  /* ---------- Rendern ---------- */
+  const fTitle = $("title"), fEan = $("ean"), fBullets = $("bullets"), fPrice = $("price");
+
+  function render(){
+    const t = checkTitle(fTitle.value);
+    const e = checkEAN(fEan.value);
+    const b = checkBullets(fBullets.value);
+    const p = checkPrice(fPrice.value);
+
+    // Titel
+    const cnt = $("titleCount");
+    cnt.textContent = t.len + " Zeichen";
+    setState(cnt, "counter", t.lenState);
+    setState($("titleMsg"), "msg", t.state);
+    $("titleMsg").textContent = t.msg;
+    setInput(fTitle, t.state);
+    const tb = $("titleBadges"); tb.replaceChildren();
+    t.hits.forEach(h => { const s = el("span","badge"); s.append(el("b",null,h.term), document.createTextNode(h.why)); tb.append(s); });
+
+    // EAN
+    setState($("eanMsg"), "msg", e.state);
+    $("eanMsg").textContent = e.msg;
+    setInput(fEan, e.state);
+    const calc = $("eanCalc"); calc.replaceChildren();
+    const showCalc = e.digits && e.digits.length === 13;
+    $("eanCalcWrap").hidden = !showCalc;
+    if (showCalc) {
+      for (let i = 0; i < 13; i++) {
+        const c = el("div", i === 12 ? "chk " + (e.valid ? "ok" : "bad") : "");
+        c.append(el("span","d",e.digits[i]), el("br"), el("span","w", i === 12 ? "PZ" : "×" + (i % 2 === 0 ? 1 : 3)));
+        calc.append(c);
+      }
+      $("eanSum").textContent = "Summe = " + e.sum + " → (10 − " + (e.sum % 10) + ") mod 10 = Prüfziffer " + e.check;
+    }
+
+    // Bullets
+    const bc = $("bulletCount");
+    bc.textContent = b.list.length + " / 3";
+    setState(bc, "counter", b.list.length >= 3 ? "ok" : b.list.length ? "warn" : "bad");
+    setState($("bulletMsg"), "msg", b.state);
+    $("bulletMsg").textContent = b.msg;
+    setInput(fBullets, b.state);
+    const bl = $("bulletLens"); bl.replaceChildren();
+    b.list.forEach((x, i) => {
+      const li = el("li","flex items-center justify-between gap-3");
+      li.append(el("span","muted truncate", (i+1) + ". " + x));
+      li.append(el("span","counter " + (x.length > 200 ? "bad" : "ok"), x.length + "/200"));
+      li.firstChild.style.minWidth = "0";
+      bl.append(li);
+    });
+
+    // Preis
+    setState($("priceMsg"), "msg", p.state);
+    $("priceMsg").textContent = p.msg;
+    setInput(fPrice, p.state);
+
+    // Score
+    const score = t.pts + e.pts + b.pts + p.pts;
+    const critical = t.critical || e.critical || p.critical;
+    const level = critical ? "bad" : score >= 90 ? "ok" : "warn";
+    const label = { ok:"Upload-bereit", warn:"Optimierung nötig", bad:"Upload wird abgelehnt" }[level];
+    $("scoreNum").textContent = score + "%";
+    $("scoreNum").style.color = "var(--" + level + ")";
+    $("scoreFill").style.width = score + "%";
+    $("scoreFill").style.background = "var(--" + level + ")";
+    $("scoreBar").setAttribute("aria-valuenow", score);
+    setState($("scorePill"), "pill", level);
+    $("scorePill").textContent = label;
+
+    const rows = [
+      ["Titel", t.state, t.pts + "/35 · " + (t.hits.length ? t.hits.length + " Spam-Treffer" : t.len + " Zeichen")],
+      ["EAN / GTIN", e.state, e.pts + "/30 · " + e.label],
+      ["Bulletpoints", b.state, b.pts + "/20 · " + b.list.length + " Punkte"],
+      ["Preis", p.state, p.pts + "/15 · " + (p.value ? fmtEUR(p.value) : "fehlt")]
+    ];
+    const cl = $("checklist"); cl.replaceChildren();
+    rows.forEach(([name, st, info]) => {
+      const r = el("div","checkrow");
+      const left = el("div","flex flex-col");
+      left.append(el("span",null,name), el("span","mono text-xs muted",info));
+      r.append(left, el("span","pill " + st, st === "ok" ? "OK" : st === "warn" ? "Prüfen" : "Fehler"));
+      cl.append(r);
+    });
+
+    // Vorschau
+    $("pvTitle").textContent = fTitle.value.trim() || "Produkttitel fehlt";
+    $("pvPrice").textContent = p.value ? fmtEUR(p.value) : "– €";
+    setState($("pvEan"), "pill", e.state);
+    $("pvEan").textContent = e.state === "ok" ? fEan.value.replace(/\s+/g,"") + " ✓" : e.label;
+    $("pvBarcode").innerHTML = e.valid ? barcodeSVG(e.digits) : "";
+    const pb = $("pvBullets"); pb.replaceChildren();
+    b.list.forEach(x => pb.append(el("li", null, x)));
+    if (!b.list.length) pb.append(el("li", null, "Keine Produktvorteile hinterlegt"));
+    const cart = $("pvCart");
+    cart.className = "cart" + (level === "bad" ? " off" : "");
+    cart.textContent = level === "bad" ? "Nicht verfügbar (Listing gesperrt)" : "In den Warenkorb";
+
+    // HTML-Export
+    $("htmlOut").textContent = b.list.length
+      ? "<ul>\n" + b.list.map(x => "  <li>" + escHTML(x) + "</li>").join("\n") + "\n</ul>"
+      : "<!-- Noch keine Bulletpoints eingegeben -->";
+  }
+
+  /* ---------- Aktionen ---------- */
+  function load(ex){
+    fTitle.value = ex.title; fEan.value = ex.ean; fPrice.value = ex.price; fBullets.value = ex.bullets;
+    $("copyMsg").textContent = "";
+    render();
+  }
+  $("btnGood").addEventListener("click", () => load(EXAMPLES.good));
+  $("btnBad").addEventListener("click", () => load(EXAMPLES.bad));
+  $("btnClear").addEventListener("click", () => load({ title:"", ean:"", price:"", bullets:"" }));
+  [fTitle, fEan, fBullets, fPrice].forEach(f => f.addEventListener("input", render));
+
+  $("btnCopy").addEventListener("click", () => {
+    const text = $("htmlOut").textContent;
+    const msg = $("copyMsg");
+    const fallback = () => {
+      const range = document.createRange(); range.selectNodeContents($("htmlOut"));
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      msg.style.color = "var(--warn)";
+      msg.textContent = "Automatisches Kopieren blockiert. Code ist markiert: mit Strg+C kopieren.";
+    };
+    try {
+      navigator.clipboard.writeText(text).then(() => {
+        msg.style.color = "var(--ok)";
+        msg.textContent = "HTML kopiert ✓";
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  load(EXAMPLES.good);
+})();
+</script>
+
+</body>
+</html>
