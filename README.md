@@ -44,3 +44,7 @@ Hinweis: Die Prüfziffer findet Tippfehler. Ob eine EAN bei GS1 registriert ist,
 Ich bin Kauffrau im E-Commerce mit Schwerpunkt Produktdatenpflege und Marktplatzanbindung. Das Tool bildet Prüfungen ab, die ich aus der täglichen Arbeit mit Kaufland, eBay und WooCommerce kenne.
 
 **Sabrina Preuß** · Dortmund
+
+## Lizenz
+
+© 2026 Sabrina Preuß. Alle Rechte vorbehalten. Der Code darf angesehen, aber ohne meine Zustimmung nicht kopiert, verändert oder kommerziell genutzt werden. Details in der Datei [LICENSE](LICENSE).
